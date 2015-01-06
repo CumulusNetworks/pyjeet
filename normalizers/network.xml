@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE normalizer SYSTEM "normalizer.dtd">
+<normalizer name="network"
+            version="1.0"
+            unicode="yes"
+            ignorecase="yes"
+            matchtype="match"
+            appliedTo="raw">
+    <description>
+        <localized_desc language="en">
+            This normalizer parses log messages related to network events
+        </localized_desc>
+    </description>
+    <authors>
+        <author>arenardvv@gmail.com</author>
+    </authors>
+    <tagTypes>
+	    <tagType name="INTERFACE" type="basestring">
+		<description>
+		    <localized_desc language="en">Matches a switching interface</localized_desc>
+		</description>
+		<regexp>(swp\d*)|(xe\d*)</regexp>
+	    </tagType>
+    </tagTypes>
+    <patterns>
+        <pattern name="interface_link_up">
+            <text>HEADER bonding: BOND: link status definitely up for interface INTERFACE, BLABLA</text>
+            <tags>
+                <tag name="header" tagType="Anything">
+                    <substitute>HEADER</substitute>
+                </tag>
+                <tag name="bond" tagType="Anything">
+                    <substitute>BOND</substitute>
+                </tag>
+                <tag name="intf" tagType="Anything">
+                    <substitute>INTERFACE</substitute>
+                </tag>
+                <tag name="message" tagType="Anything">
+                    <substitute>BLABLA</substitute>
+                </tag>
+            </tags>
+        </pattern>
+         <pattern name="interface_link_down">
+            <text>HEADER bonding: BOND: link status definitely down for interface INTERFACE, BLABLA</text>
+            <tags>
+                <tag name="header" tagType="Anything">
+                    <substitute>HEADER</substitute>
+                </tag>
+                <tag name="bond" tagType="Anything">
+                    <substitute>BOND</substitute>
+                </tag>
+                <tag name="intf" tagType="Anything">
+                    <substitute>INTERFACE</substitute>
+                </tag>
+                <tag name="message" tagType="Anything">
+                    <substitute>BLABLA</substitute>
+                </tag>
+            </tags>
+        </pattern>
+        <pattern name="simple_interface">
+            <text>.*INTERFACE.*</text>
+            <tags>
+                <tag name="intf" tagType="INTERFACE">
+                    <substitute>INTERFACE</substitute>
+                </tag>
+            </tags>
+        </pattern> 
+        <pattern name="ip_address">
+            <text>.*IP.*</text>
+            <tags>
+                <tag name="ip" tagType="IP">
+                    <substitute>IP</substitute>
+                </tag>
+            </tags>
+        </pattern>
+        <pattern name="mac_address">
+            <text>.*MAC.*</text>
+            <tags>
+                <tag name="mac" tagType="MACAddress">
+                    <substitute>MAC</substitute>
+                </tag>
+            </tags>
+        </pattern>
+    </patterns>
+</normalizer>

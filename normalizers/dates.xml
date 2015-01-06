@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE normalizer SYSTEM "normalizer.dtd">
+<normalizer name="dates"
+            version="1.0"
+            unicode="yes"
+            ignorecase="yes"
+            matchtype="match"
+            appliedTo="raw">
+    <description>
+        <localized_desc language="en">This normalizer parses any data and tries to extract dates</localized_desc>
+    </description>
+    <authors>
+        <author>julien.fortin.it@gmail.com</author>
+    </authors>
+
+    <callbacks>
+        <callback name="iso_to_utc">
+            utc_date = extras.iso_to_utc(value)
+            log['date'] = utc_date
+        </callback>
+
+        <callback name="switchd_date">
+            try:
+                log['date'] = float(value.split(' ')[0])
+            except Exception as e:
+                print 'Switchd date: ' + e
+        </callback>
+
+        <callback name="decode_regdate">
+            log['date'] = datetime(int(value[0:4]),
+            int(value[5:7]),
+            int(value[8:10]),
+            int(value[11:13]),
+            int(value[14:16]),
+            int(value[17:19]))
+        </callback>
+
+    </callbacks>
+    <patterns>
+        <pattern name="date_syslog">
+            <text>.*DATE.*</text>
+            <tags>
+                <tag name="date" tagType="syslogDate">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'horodatage du log par le démon syslog</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                    <callbacks>
+                        <callback>MMM dd hh:mm:ss</callback>
+                    </callbacks>
+                </tag>
+            </tags>
+        </pattern>
+
+        <pattern name="date_syslog_iso">
+            <text>.*DATE.*</text>
+            <tags>
+                <tag name="date" tagType="syslogDateISO">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'horodatage du log par le démon syslog</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                    <callbacks>
+                        <callback>iso_to_utc</callback>
+                    </callbacks>
+                </tag>
+            </tags>
+        </pattern>
+
+        <pattern name="date_switchd">
+            <text>.*DATE.*</text>
+            <tags>
+                <tag name="date" tagType="switchdDate">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'heure produite par le daemon switchd</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                    <callbacks>
+                        <callback>switchd_date</callback>
+                    </callbacks>
+                </tag>
+            </tags>
+        </pattern>
+
+        <pattern name="date_regular">
+            <text>.*DATE.*</text>
+            <tags>
+                <tag name="date" tagType="RegDate">
+                    <substitute>DATE</substitute>
+                    <callbacks>
+                        <callback>decode_regdate</callback>
+                    </callbacks>
+                </tag>
+            </tags>
+        </pattern>
+    </patterns>
+</normalizer>

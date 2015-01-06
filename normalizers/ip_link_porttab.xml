@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE normalizer SYSTEM "normalizer.dtd">
+<normalizer name="substitution"
+            version="1.0"
+            unicode="yes"
+            ignorecase="yes"
+            matchtype="match"
+            appliedTo="raw">
+    <description>
+        <localized_desc language="en">This normalizer parse data from specific files used for normalization</localized_desc>
+    </description>
+    <authors>
+        <author>julien.fortin.it@gmail.com</author>
+        <author>arenardvv@gmail.com</author>
+    </authors>
+    <tagTypes>
+        <tagType name="linux_interface">
+            <regexp>[a-zA-Z]+[0-9]+</regexp>
+        </tagType>
+
+        <tagType name="sdk_interface">
+            <regexp>xe[0-9]+</regexp>
+        </tagType>
+    </tagTypes>
+    <callbacks>
+        <callback name="cumulus_porttab__init__">
+            pass
+        </callback>
+    </callbacks>
+    <patterns>
+        <pattern name="cumulus_porttab">
+            <text>LINUX_INTERFACE.*SDK_INTERFACE.*[0-9]*.*[0-9]*.*</text>
+            <tags>
+                <tag name="linux_interface" tagType="linux_interface">
+                    <substitute>LINUX_INTERFACE</substitute>
+                </tag>
+
+                <tag name="sdk_interface" tagType="sdk_interface">
+                    <substitute>SDK_INTERFACE</substitute>
+                </tag>
+            </tags>
+        </pattern>
+
+        <pattern name="a_ip_addr_show">
+            <text>ID: LINUX_INTERFACE: .*link/ether MAC.*</text>
+            <tags>
+                <tag name="id_interface" tagType="Integer">
+                    <substitute>ID</substitute>
+                </tag>
+
+                <tag name="linux_interface" tagType="linux_interface">
+                    <substitute>LINUX_INTERFACE</substitute>
+                </tag>
+
+                <tag name="mac_interface" tagType="MACAddress">
+                    <substitute>MAC</substitute>
+                </tag>
+            </tags>
+        </pattern>
+
+        <pattern name="ab_ip_addr_show">
+            <text>ID: LINUX_INTERFACE .*inet IP.*</text>
+            <tags>
+                <tag name="id_interface" tagType="Integer">
+                    <substitute>ID</substitute>
+                </tag>
+
+                <tag name="linux_interface" tagType="linux_interface">
+                    <substitute>LINUX_INTERFACE</substitute>
+                </tag>
+
+                <tag name="ip_interface" tagType="IP">
+                    <substitute>IP</substitute>
+                </tag>
+            </tags>
+        </pattern>
+
+        <pattern name="ac_ip_addr_show_vlan">
+            <text>ID: LINUX_INTERFACE\.VLAN@.*: .*</text>
+            <tags>
+                <tag name="vlan_number" tagType="Integer">
+                    <substitute>VLAN</substitute>
+                </tag>
+
+                <tag name="id_interface" tagType="Integer">
+                    <substitute>ID</substitute>
+                </tag>
+
+                <tag name="linux_interface" tagType="linux_interface">
+                    <substitute>LINUX_INTERFACE</substitute>
+                </tag>
+            </tags>
+        </pattern>
+
+        <pattern name="ad_addr_show">
+            <text>ID: LINUX_INTERFACE: .*</text>
+            <tags>
+                <tag name="id_interface" tagType="Integer">
+                    <substitute>ID</substitute>
+                </tag>
+
+                <tag name="linux_interface" tagType="linux_interface">
+                    <substitute>LINUX_INTERFACE</substitute>
+                </tag>
+            </tags>
+        </pattern>
+    </patterns>
+</normalizer>

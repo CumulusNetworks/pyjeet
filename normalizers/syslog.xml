@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE normalizer SYSTEM "normalizer.dtd">
+<normalizer name="syslog"
+            version="1.0"
+            unicode="yes"
+            ignorecase="yes"
+            matchtype="match"
+            appliedTo="raw">
+    <description>
+        <localized_desc language="en">
+            This normalizer parses syslog lines, as defined in RFC3164.
+            The priority, when present, is broken into the facility and severity codes.
+        </localized_desc>
+        <localized_desc language="fr">
+            Ce normaliseur traite les événements au format syslog, tel qu'il est défini dans
+            la RFC3164.
+            Si le message contient une information de priorité, celle-ci est décomposée en deux valeurs : facilité et
+            gravité.
+        </localized_desc>
+    </description>
+    <authors>
+        <author>mhu@wallix.com</author>
+        <author>julien.fortin.it@gmail.com</author>
+    </authors>
+    <!-- Most of the following declarations should be unnecessary once we define a pool of generic types. They are here for educational purposes.-->
+    <tagTypes>
+        <tagType name="syslogPriority" type="integer">
+            <description>
+                <localized_desc language="en">Expression matching a syslog line priority, defined as 8*facility +
+                    severity.
+                </localized_desc>
+                <localized_desc language="fr">Expression correspondant à la priorité du message, suivant la formule 8 x
+                    facilité + gravité.
+                </localized_desc>
+            </description>
+            <regexp>\d{1,3}</regexp>
+        </tagType>
+        <tagType name="syslogHostname" type="basestring">
+            <description>
+                <localized_desc language="en">Expression matching the log's source.</localized_desc>
+                <localized_desc language="fr">Expression correspondant à la source du message.</localized_desc>
+            </description>
+            <regexp>[^: ]+</regexp>
+        </tagType>
+        <tagType name="syslogProcess" type="basestring">
+            <description>
+                <localized_desc language="en">Expression matching the log's program.</localized_desc>
+                <localized_desc language="fr">Expression correspondant au programme notifiant l'événement.
+                </localized_desc>
+            </description>
+            <regexp>[^: []*</regexp>
+        </tagType>
+    </tagTypes>
+    <callbacks>
+        <callback name="decode_priority">
+            log["facility_code"] = "%d" % facility
+            log["severity_code"] = "%d" % severity
+        </callback>
+    </callbacks>
+    <patterns>
+        <pattern name="syslog-001">
+            <description>
+                <localized_desc language="en">A syslog line with optional priority (if sent through network), source,
+                    program and optional PID.
+                </localized_desc>
+                <localized_desc language="fr">Une ligne de log encapsulée par syslog comprenant une priorité optionnelle
+                    (présente si les logs transitent via le réseau), une source, un programme et un PID (optionnel).
+                </localized_desc>
+            </description>
+            <text>(?:&lt;PRIORITY&gt;)?DATE HOSTNAME PROCESS(?:\[PID\])?: BODY</text>
+            <tags>
+                <tag name="__priority"
+                     tagType="syslogPriority"><!-- tags starting with double underscores will not appear in the final wallixlog.-->
+                    <description>
+                        <localized_desc language="en">the log's priority</localized_desc>
+                        <localized_desc language="fr">la priorité du log, égale à 8 x facilité + gravité
+                        </localized_desc>
+                    </description>
+                    <substitute>PRIORITY</substitute>
+                    <callbacks>
+                        <callback>decode_priority</callback>
+                    </callbacks>
+                </tag>
+                <tag name="__date" tagType="syslogDate">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'horodatage du log par le démon syslog</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                    <callbacks>
+                        <callback>MMM dd hh:mm:ss</callback>
+                    </callbacks>
+                </tag>
+                <tag name="hostname" tagType="syslogHostname">
+                    <description>
+                        <localized_desc language="en">the log's source</localized_desc>
+                        <localized_desc language="fr">l'équipement d'origine de l'événement</localized_desc>
+                    </description>
+                    <substitute>HOSTNAME</substitute>
+                </tag>
+                <tag name="process" tagType="syslogProcess">
+                    <description>
+                        <localized_desc language="en">the log's program</localized_desc>
+                        <localized_desc language="fr">le programme à l'origine de l'événement</localized_desc>
+                    </description>
+                    <substitute>PROCESS</substitute>
+                </tag>
+                <tag name="pid" tagType="Integer">
+                    <description>
+                        <localized_desc language="en">the program's process ID</localized_desc>
+                        <localized_desc language="fr">le PID du programme</localized_desc>
+                    </description>
+                    <substitute>PID</substitute>
+                </tag>
+                <tag name="body" tagType="Anything">
+                    <description>
+                        <localized_desc language="en">the actual event message</localized_desc>
+                        <localized_desc language="fr">le message décrivant l'événement</localized_desc>
+                    </description>
+                    <substitute>BODY</substitute>
+                </tag>
+            </tags>
+            <examples>
+                <example>
+                    <text>&lt;29&gt;Jul 18 08:55:35 julien dhclient[2218]: bound to 10.10.4.11 -- renewal in 2792
+                        seconds.
+                    </text>
+                    <expectedTags>
+                        <expectedTag name="facility">daemon</expectedTag>
+                        <expectedTag name="severity">notice</expectedTag>
+                        <expectedTag name="hostname">julien</expectedTag>
+                        <expectedTag name="process">dhclient</expectedTag>
+                        <expectedTag name="pid">2218</expectedTag>
+                        <expectedTag name="body">bound to 10.10.4.11 -- renewal in 2792 seconds.</expectedTag>
+                    </expectedTags>
+                </example>
+            </examples>
+        </pattern>
+        <pattern name="syslog-002-snare-windows-agent">
+            <description>
+                <localized_desc language="en">A syslog line as it is emitted by the Snare Windows agent.
+                </localized_desc>
+                <localized_desc language="fr">Une ligne de log au format Syslog, telle qu'elle est émise par l'agent
+                    Snare pour Windows.
+                </localized_desc>
+            </description>
+            <text>(?:&lt;PRIORITY&gt;)?DATE HOSTNAME MSWinEventLog\sBODY</text>
+            <tags>
+                <tag name="__priority" tagType="syslogPriority">
+                    <description>
+                        <localized_desc language="en">the log's priority</localized_desc>
+                        <localized_desc language="fr">la priorité du log, égale à 8 x facilité + gravité
+                        </localized_desc>
+                    </description>
+                    <substitute>PRIORITY</substitute>
+                    <callbacks>
+                        <callback>decode_priority</callback>
+                    </callbacks>
+                </tag>
+                <tag name="__date" tagType="syslogDate">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'horodatage du log par le démon syslog</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                </tag>
+                <tag name="hostname" tagType="syslogHostname">
+                    <description>
+                        <localized_desc language="en">the log's source</localized_desc>
+                        <localized_desc language="fr">l'équipement d'origine de l'événement</localized_desc>
+                    </description>
+                    <substitute>HOSTNAME</substitute>
+                </tag>
+                <tag name="body" tagType="Anything">
+                    <description>
+                        <localized_desc language="en">the actual event message</localized_desc>
+                        <localized_desc language="fr">le message décrivant l'événement</localized_desc>
+                    </description>
+                    <substitute>BODY</substitute>
+                </tag>
+            </tags>
+            <commonTags>
+                <commonTag name="process">EventLog</commonTag>
+            </commonTags>
+            <examples>
+                <example>
+                    <text>&lt;13&gt;Nov 6 17:32:47 w2003en MSWinEventLog 1&#9;Security&#9;418&#9;Tue Nov 06 17:32:41
+                        2012&#9;538&#9;Security&#9;ANONYMOUS LOGON&#9;Well Known Group&#9;Success Audit&#9;W2003EN&#9;Logon/Logoff&#9;User
+                        Logoff: User Name: ANONYMOUS LOGON Domain: NT AUTHORITY Logon ID: (0x0,0x6D78D) Logon Type: 3&#9;291
+                    </text>
+                    <expectedTags>
+                        <expectedTag name="facility">user</expectedTag>
+                        <expectedTag name="severity">notice</expectedTag>
+                        <expectedTag name="hostname">w2003en</expectedTag>
+                        <expectedTag name="process">EventLog</expectedTag>
+                        <expectedTag name="body">1&#9;Security&#9;418&#9;Tue Nov 06 17:32:41 2012&#9;538&#9;Security&#9;ANONYMOUS
+                            LOGON&#9;Well Known Group&#9;Success Audit&#9;W2003EN&#9;Logon/Logoff&#9;User Logoff: User
+                            Name: ANONYMOUS LOGON Domain: NT AUTHORITY Logon ID: (0x0,0x6D78D) Logon Type: 3&#9;291
+                        </expectedTag>
+                    </expectedTags>
+                </example>
+            </examples>
+        </pattern>
+        <pattern name="syslog-003">
+            <description>
+                <localized_desc language="en">A syslog line with optional priority (if sent through network), source,
+                    and no information about program and PID.
+                </localized_desc>
+                <localized_desc language="fr">Une ligne de log encapsulée par syslog comprenant une priorité optionnelle
+                    (présente si les logs transitent via le réseau), une source, et pas d'information sur le programme.
+                </localized_desc>
+            </description>
+            <text>(?:&lt;PRIORITY&gt;)?DATE HOSTNAME BODY</text>
+            <tags>
+                <tag name="__priority" tagType="syslogPriority">
+                    <description>
+                        <localized_desc language="en">the log's priority</localized_desc>
+                        <localized_desc language="fr">la priorité du log, égale à 8 x facilité + gravité
+                        </localized_desc>
+                    </description>
+                    <substitute>PRIORITY</substitute>
+                    <callbacks>
+                        <callback>decode_priority</callback>
+                    </callbacks>
+                </tag>
+                <tag name="__date" tagType="syslogDate">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'horodatage du log par le démon syslog</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                </tag>
+                <tag name="hostname" tagType="syslogHostname">
+                    <description>
+                        <localized_desc language="en">the log's source</localized_desc>
+                        <localized_desc language="fr">l'équipement d'origine de l'événement</localized_desc>
+                    </description>
+                    <substitute>HOSTNAME</substitute>
+                </tag>
+                <tag name="body" tagType="Anything">
+                    <description>
+                        <localized_desc language="en">the actual event message</localized_desc>
+                        <localized_desc language="fr">le message décrivant l'événement</localized_desc>
+                    </description>
+                    <substitute>BODY</substitute>
+                </tag>
+            </tags>
+            <examples>
+                <example>
+                    <text>&lt;29&gt;Jul 18 08:55:35 julien bound to 10.10.4.11 -- renewal in 2792 seconds.</text>
+                    <expectedTags>
+                        <expectedTag name="facility">daemon</expectedTag>
+                        <expectedTag name="severity">notice</expectedTag>
+                        <expectedTag name="hostname">julien</expectedTag>
+                        <expectedTag name="body">bound to 10.10.4.11 -- renewal in 2792 seconds.</expectedTag>
+                    </expectedTags>
+                </example>
+            </examples>
+        </pattern>
+        <pattern name="syslog-004-iso-timestamp">
+            <description>
+                <localized_desc language="en">A syslog line with optional priority (if sent through network), source,
+                    program and optional PID. Using iso timestamp
+                </localized_desc>
+                <localized_desc language="fr">Une ligne de log encapsulée par syslog comprenant une priorité optionnelle
+                    (présente si les logs transitent via le réseau), une source, un programme et un PID (optionnel).
+                    Utilise l'horodatage iso
+                </localized_desc>
+            </description>
+            <text>(?:&lt;PRIORITY&gt;)?DATE HOSTNAME PROCESS(?:\[PID\])?: BODY</text>
+            <tags>
+                <tag name="__priority"
+                     tagType="syslogPriority"><!-- tags starting with double underscores will not appear in the final wallixlog.-->
+                    <description>
+                        <localized_desc language="en">the log's priority</localized_desc>
+                        <localized_desc language="fr">la priorité du log, égale à 8 x facilité + gravité
+                        </localized_desc>
+                    </description>
+                    <substitute>PRIORITY</substitute>
+                    <callbacks>
+                        <callback>decode_priority</callback>
+                    </callbacks>
+                </tag>
+                <tag name="__date" tagType="syslogDateISO">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'horodatage du log par le démon syslog</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                </tag>
+                <tag name="hostname" tagType="syslogHostname">
+                    <description>
+                        <localized_desc language="en">the log's source</localized_desc>
+                        <localized_desc language="fr">l'équipement d'origine de l'événement</localized_desc>
+                    </description>
+                    <substitute>HOSTNAME</substitute>
+                </tag>
+                <tag name="process" tagType="syslogProcess">
+                    <description>
+                        <localized_desc language="en">the log's program</localized_desc>
+                        <localized_desc language="fr">le programme à l'origine de l'événement</localized_desc>
+                    </description>
+                    <substitute>PROCESS</substitute>
+                </tag>
+                <tag name="pid" tagType="Integer">
+                    <description>
+                        <localized_desc language="en">the program's process ID</localized_desc>
+                        <localized_desc language="fr">le PID du programme</localized_desc>
+                    </description>
+                    <substitute>PID</substitute>
+                </tag>
+                <tag name="body" tagType="Anything">
+                    <description>
+                        <localized_desc language="en">the actual event message</localized_desc>
+                        <localized_desc language="fr">le message décrivant l'événement</localized_desc>
+                    </description>
+                    <substitute>BODY</substitute>
+                </tag>
+            </tags>
+            <examples>
+                <example>
+                    <text>&lt;29&gt;Jul 18 08:55:35 julien dhclient[2218]: bound to 10.10.4.11 -- renewal in 2792
+                        seconds.
+                    </text>
+                    <expectedTags>
+                        <expectedTag name="facility">daemon</expectedTag>
+                        <expectedTag name="severity">notice</expectedTag>
+                        <expectedTag name="hostname">julien</expectedTag>
+                        <expectedTag name="process">dhclient</expectedTag>
+                        <expectedTag name="pid">2218</expectedTag>
+                        <expectedTag name="body">bound to 10.10.4.11 -- renewal in 2792 seconds.</expectedTag>
+                    </expectedTags>
+                </example>
+            </examples>
+        </pattern>
+        <pattern name="syslog-005-iso-timestamp">
+            <description>
+                <localized_desc language="en">A syslog line with optional priority (if sent through network), source,
+                    and no information about program and PID. Using iso timestamp
+                </localized_desc>
+                <localized_desc language="fr">Une ligne de log encapsulée par syslog comprenant une priorité optionnelle
+                    (présente si les logs transitent via le réseau), une source, et pas d'information sur le programme.
+                    Utilise l'horodatage iso
+                </localized_desc>
+            </description>
+            <text>(?:&lt;PRIORITY&gt;)?DATE HOSTNAME BODY</text>
+            <tags>
+                <tag name="__priority" tagType="syslogPriority">
+                    <description>
+                        <localized_desc language="en">the log's priority</localized_desc>
+                        <localized_desc language="fr">la priorité du log, égale à 8 x facilité + gravité
+                        </localized_desc>
+                    </description>
+                    <substitute>PRIORITY</substitute>
+                    <callbacks>
+                        <callback>decode_priority</callback>
+                    </callbacks>
+                </tag>
+                <tag name="__date" tagType="syslogDateISO">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'horodatage du log par le démon syslog</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                </tag>
+                <tag name="hostname" tagType="syslogHostname">
+                    <description>
+                        <localized_desc language="en">the log's source</localized_desc>
+                        <localized_desc language="fr">l'équipement d'origine de l'événement</localized_desc>
+                    </description>
+                    <substitute>HOSTNAME</substitute>
+                </tag>
+                <tag name="body" tagType="Anything">
+                    <description>
+                        <localized_desc language="en">the actual event message</localized_desc>
+                        <localized_desc language="fr">le message décrivant l'événement</localized_desc>
+                    </description>
+                    <substitute>BODY</substitute>
+                </tag>
+            </tags>
+            <examples>
+                <example>
+                    <text>&lt;29&gt;2013-11-05T11:09:02+01:00 julien bound to 10.10.4.11 -- renewal in 2792 seconds.
+                    </text>
+                    <expectedTags>
+                        <expectedTag name="facility">daemon</expectedTag>
+                        <expectedTag name="severity">notice</expectedTag>
+                        <expectedTag name="process">julien</expectedTag>
+                        <expectedTag name="body">bound to 10.10.4.11 -- renewal in 2792 seconds.</expectedTag>
+                    </expectedTags>
+                </example>
+            </examples>
+        </pattern>
+        <pattern name="syslog-switchd">
+            <text>(?:&lt;PRIORITY&gt;)?DATE (FILE:LINE)? BODY</text>
+            <tags>
+                <tag name="__priority" tagType="syslogPriority">
+                    <description>
+                        <localized_desc language="en">the log's priority</localized_desc>
+                        <localized_desc language="fr">la priorité du log, égale à 8 x facilité + gravité
+                        </localized_desc>
+                    </description>
+                    <substitute>PRIORITY</substitute>
+                    <callbacks>
+                        <callback>decode_priority</callback>
+                    </callbacks>
+                </tag>
+                <tag name="__date" tagType="switchdDate">
+                    <description>
+                        <localized_desc language="en">the log's date and time</localized_desc>
+                        <localized_desc language="fr">l'heure produite par le daemon switchd</localized_desc>
+                    </description>
+                    <substitute>DATE</substitute>
+                </tag>
+                <tag name="file" tagType="AnythingWithoutSpace">
+                    <description>
+                        <localized_desc language="en">The files who produced the log</localized_desc>
+                        <localized_desc language="fr">Le fichier à l'origine de l'événement</localized_desc>
+                    </description>
+                    <substitute>FILE</substitute>
+                </tag>
+                <tag name="line" tagType="Integer">
+                    <substitute>LINE</substitute>
+                </tag>
+                <tag name="body" tagType="Anything">
+                    <description>
+                        <localized_desc language="en">the actual event message</localized_desc>
+                        <localized_desc language="fr">le message décrivant l'événement</localized_desc>
+                    </description>
+                    <substitute>BODY</substitute>
+                </tag>
+            </tags>
+            <examples>
+                <example>
+                    <text>1401730207.298088 2014-06-02 17:30:07 switchd.c:221 /config/logging changed to
+                        file:/var/log/switchd.log=INFO
+                    </text>
+                    <expectedTags>
+                        <expectedTag name="facility">daemon</expectedTag>
+                        <expectedTag name="severity">notice</expectedTag>
+                        <expectedTag name="hostname">julien</expectedTag>
+                        <expectedTag name="body">bound to 10.10.4.11 -- renewal in 2792 seconds.</expectedTag>
+                    </expectedTags>
+                </example>
+            </examples>
+        </pattern>
+    </patterns>
+</normalizer>

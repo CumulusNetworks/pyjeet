@@ -1,0 +1,156 @@
+#! /usr/bin/python
+#
+# Copyright 2014 Cumulus Networks, Inc. All rights reserved.
+# Author:   Julien Fortin <julien.fortin.it@gmail.com>
+#
+# pyjeet --
+# the distributed log analysis tool for networking troubleshooting.
+#
+print "Loading pyjeet modules..."
+
+import sys
+import argparse
+import pdb
+
+from pyjeet.master import Master
+from pyjeet.slave import Slave
+
+
+class Pyjeet:
+    DEFAULT_SLAVE_PORT = 6742
+    ARG_INTERFACES = ['-i', '--interfaces', ]
+    ARG_INTERVAL = ['--interval', ]
+    ARG_FILES = ['-f', '--files']
+    ARG_HOSTS = ['--hosts', ]
+    ARG_GUI = ['-g', '--gui']
+    ARG_DATE = ['-d', '--date', ]
+
+    def __init__(self):
+        self.slave_mode = {True: Slave, False: Master}
+        print "Loading arguments..."
+        self.parse_argv()
+        if len(sys.argv) == 1:
+            self.parser.print_usage()
+            sys.exit(1)
+        self.body = None
+
+    def parse_argv(self):
+        self.parser = argparse.ArgumentParser()
+
+        self.parser.add_argument('-p', '--port',
+                                 help='specified listenning port (default: ' + str(
+                                     Pyjeet.DEFAULT_SLAVE_PORT) + ')',
+                                 type=int,
+                                 default=Pyjeet.DEFAULT_SLAVE_PORT)
+        self.parser.add_argument('-v', '--verbose',
+                                 help='verbose mode display: Timestamp[Hostname:filename]:',
+                                 default=False,
+                                 action='store_true')
+        self.parser.add_argument('-cl', '--clsupport',
+                                help='Absolute path to a cl-support file',
+                                default=None,
+                                action = 'store')
+        self.parser.add_argument('-un', '--unzip',
+                                 help='Unzip log rotation zip files associated to log files, beware it might take a lot of time to\
+                                  load and process',
+                                 default=False,
+                                 action='store_true')
+        self.parser.add_argument('-S', '--standalone',
+                                 help='Standalone mode, to run pyjeet on a single box as Master but without getting data from slaves',
+                                 default=False,
+                                 action='store_true')
+        self.parser.add_argument('-I', '--dateInterval',
+                                 help='Give a time interval in the format of two dates (format: "YYYY-MM-dd mm:hh:ss"),\
+                                 see date and interval for another way to select a period of time',
+                                 default=None,
+                                 nargs='*')
+        self.parser.add_argument('-F', '--folders',
+                                 help='Give an entire folder from which all log files will be extracted and analyzed,\
+				 set to /var/log by default if no specific log file is specified,  give a list of [HOSTNAME:]folder\
+                 /!\ only implemented for standalon mode right now',
+                                 default=None,
+                                 nargs='*')
+        self.parser.add_argument('-r', '--ratio',
+                                 help='Give ratio of similarity to be used when searching similar log lines',
+                                 type=int,
+                                 default=0.75)
+        self.parser.add_argument('-t', '--time_span',
+                                 help='Give interval of time used to aggregate similar log lines',
+                                 type=int,
+                                 default=1000)
+        self.parser.add_argument('-P', '--pad_limit',
+                                 help='Give max number of lines which can be seen in gui usin ncurses pad, changing this value\
+                                 to a higher value might make pyjeet crash',
+                                 type=int,
+                                 default=10000)
+
+        slave = self.parser.add_argument_group()
+        slave.add_argument('-s', '--slave',
+                           help='run pyjeet as slave',
+                           action='store_true',
+                           default=False)
+
+        master = self.parser.add_argument_group()
+        master.add_argument(Pyjeet.ARG_GUI[0], Pyjeet.ARG_GUI[1],
+                            help='''ncurses interface, note on the gui usage:
+                            Currently one request at a time in a cscope fashion, press enter to send request.
+                            Send blanck request to get all content for given field excpet for interface/bridge, see bottom.
+                            For time request use the separator | to separate the wanted date and the time interval.
+                            Give date preferably as "YYYY-MM-dd mm:hh:ss" or timestamp.
+                            Use up and down arrow keys to go up and down in logs.
+                            Use right and left arrow keys to go right/left for long lines.
+                            Use space key and backspace key to move pages back and forth.
+                            Press enter on a log line to see it in its original file.
+                            Press f on a log line to see its frequency (might take a very long time depending on the amount of data)
+                            do ctrl-c to escape.
+                            Escape Key is used all the time to get back one step and quit pyjeet.
+                            For network objects fields interface/bridge there is host granularity that is you can write
+                            host1:bridge1 host2:brig2 clsupport:bridge3, clsupport is the key word to look at a bridge from
+                             given archive if any. Plus use the all keyword can be used as a wildcard''',
+                            default=False,
+                            action='store_true')
+        master.add_argument(Pyjeet.ARG_HOSTS[0],
+                            help='Desired host(s) from which logs will be extracted',
+                            default=[],
+                            nargs='*')
+        master.add_argument(Pyjeet.ARG_INTERFACES[0], Pyjeet.ARG_INTERFACES[1],
+                            help='Selected interface per host ([HOSTNAME:]INTERFACE_NAME), if nothing specified every interface is selected',
+                            default=None,
+                            nargs='*')
+        master.add_argument(Pyjeet.ARG_INTERVAL[0],
+                            help='Desired interval around the specified date/timestamp in seconds',
+                            type=int,
+                            default=1000)
+        master.add_argument(Pyjeet.ARG_DATE[0], Pyjeet.ARG_DATE[1],
+                            help='Desired start date (format: "YYYY-MM-dd mm:hh:ss") or timestamp',
+                            default=None)
+        master.add_argument(Pyjeet.ARG_FILES[0], Pyjeet.ARG_FILES[1],
+                            help='Hosts files to be downloaded and analyzed [HOSTNAME:]file_path, write clsupport:file_path will take file from cl-support.\
+                    If no host or clsupport written, file selected everywhere. Give relative path if clsupport (absolute path to archive already given) or give\
+                    absolute path for file on host.',
+                            default=[],
+                            nargs='*')
+        self.args = self.parser.parse_args()
+
+    def run(self):
+        self.body = self.slave_mode[self.args.slave](self.args)
+        return self.body.run()
+
+    def clean(self):
+        self.body.clean()
+
+
+def main():
+    pyjeet = Pyjeet()
+    try:
+        return pyjeet.run()
+    except (KeyboardInterrupt, SystemExit):
+        print "Pyjeet forced quit"
+        return 0
+    finally:
+        pyjeet.clean()
+    print "Unexpected state mad pyjeet quit"
+    return 1
+
+if __name__ == '__main__':
+    sys.exit(main())

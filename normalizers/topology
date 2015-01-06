@@ -1,0 +1,4 @@
+# Add a dictionary on one line for each host which must contain name, ip and can contain port (default if not specified)
+# Could be generated automatically with PTM in the future
+# Example: {'name': 'host2','ip': '10.0.0.1','port': 234,}
+{'name': 'localhost','ip': '127.0.0.1'}

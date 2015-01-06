@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+<!--                                                            -->
+<!-- pylogparser - Logs parsers python library                  -->
+<!-- Copyright (C) 2011 Wallix Inc.                             -->
+<!--                                                            -->
+<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+<!--                                                            -->
+<!-- This package is free software; you can redistribute        -->
+<!-- it and/or modify it under the terms of the GNU Lesser      -->
+<!-- General Public License as published by the Free Software   -->
+<!-- Foundation; either version 2.1 of the License, or (at      -->
+<!-- your option) any later version.                            -->
+<!--                                                            -->
+<!-- This package is distributed in the hope that it will be    -->
+<!-- useful, but WITHOUT ANY WARRANTY; without even the implied -->
+<!-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR    -->
+<!-- PURPOSE.  See the GNU Lesser General Public License for    -->
+<!-- more details.                                              -->
+<!--                                                            -->
+<!-- You should have received a copy of the GNU Lesser General  -->
+<!-- Public License along with this package; if not, write      -->
+<!-- to the Free Software Foundation, Inc., 59 Temple Place,    -->
+<!-- Suite 330, Boston, MA  02111-1307  USA                     -->
+<!--                                                            -->
+<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+<!--                                                            -->
+<!-- Modification by Julien Fortin <julien.fortin.it@gmail.com  -->
+<!-- Copyright (C) 2014 Cumulus Networks Inc.                   -->
+<!--                                                            -->
+<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+<!DOCTYPE tagTypes [
+        <!ELEMENT tagTypes (tagType+)>
+        <!ELEMENT tagType (description?,regexp,callbacks?)>
+        <!ATTLIST tagType name CDATA #REQUIRED>
+        <!ATTLIST tagType type (integer|float|basestring|datetime) "basestring">
+        <!ELEMENT regexp (#PCDATA)>
+        <!ELEMENT callbacks (callback+)>
+        <!ELEMENT callback (#PCDATA)>
+        <!ELEMENT description (localized_desc+)>
+        <!ELEMENT localized_desc (#PCDATA)>
+        <!ATTLIST localized_desc language CDATA #REQUIRED>
+        ]>
+
+<!-- Definition of most common tag types. -->
+
+<tagTypes>
+    <tagType name="Anything" type="basestring">
+        <description>
+            <localized_desc language="en">Matches everything and anything.</localized_desc>
+            <localized_desc language="fr">Chaîne de caractères de longueur arbitraire.</localized_desc>
+        </description>
+        <regexp>.*</regexp>
+    </tagType>
+    <tagType name="Integer" type="integer">
+        <description>
+            <localized_desc language="en">Matches a variable-length integer.</localized_desc>
+            <localized_desc language="fr">Entier positif.</localized_desc>
+        </description>
+        <regexp>\d+</regexp>
+    </tagType>
+    <tagType name="EpochTime" type="float">
+        <description>
+            <localized_desc language="en">Matches an EPOCH timestamp or a positive decimal number.</localized_desc>
+            <localized_desc language="fr">Horodatage au format EPOCH, ou nombre décimal positif.</localized_desc>
+        </description>
+        <regexp>\d+(?:.\d*)?</regexp>
+    </tagType>
+    <tagType name="syslogDate" type="datetime">
+        <description>
+            <localized_desc language="en">Expression matching syslog dates.</localized_desc>
+            <localized_desc language="fr">Date au format syslog.</localized_desc>
+        </description>
+        <regexp>[A-Z][a-z]{2} [ 0-9]\d \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+    <tagType name="syslogDateISO" type="datetime">
+        <description>
+            <localized_desc language="en">Expression matching syslog dates.</localized_desc>
+            <localized_desc language="fr">Date au format syslog.</localized_desc>
+        </description>
+        <regexp>(?:\d{4}\-\d\d\-\d\d(:?[tT][\d:\.]*)?)(?:[zZ]|(?:[+\-])(:?\d\d):?(:?\d\d))?</regexp>
+    </tagType>
+    <tagType name="URL" type="basestring">
+        <description>
+            <localized_desc language="en">Matches an URL.</localized_desc>
+            <localized_desc language="fr">Correspond à une URL (http/https).</localized_desc>
+        </description>
+        <regexp>http[s]?://[^ "']+</regexp>
+    </tagType>
+    <tagType name="MACAddress" type="basestring">
+        <description>
+            <localized_desc language="en">Matches a MAC address.</localized_desc>
+            <localized_desc language="fr">Correspond à une adresse MAC.</localized_desc>
+        </description>
+        <regexp>[0-9a-fA-F]{2}:(?:[0-9a-fA-F]{2}:){4}[0-9a-fA-F]{2}</regexp>
+    </tagType>
+    <tagType name="Email" type="basestring">
+        <description>
+            <localized_desc language="en">Matches an E-mail address.</localized_desc>
+            <localized_desc language="fr">Correspond à une adresse e-mail.</localized_desc>
+        </description>
+        <regexp>[a-zA-Z0-9+_\-\.]+@[0-9a-zA-Z][.-0-9a-zA-Z]*.[a-zA-Z]+</regexp>
+    </tagType>
+    <tagType name="IP" type="basestring">
+        <description>
+            <localized_desc language="en">Matches a numeric IP.</localized_desc>
+            <localized_desc language="fr">Correspond à une adresse IP numérique.</localized_desc>
+        </description>
+        <!-- <regexp>(?&lt;![.0-9])(?:\d{1,3}.){3}\d{1,3}(?![.0-9])</regexp> -->
+    <regexp>\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b</regexp>
+    </tagType>
+    <tagType name="ZuluTime" type="basestring">
+        <description>
+            <localized_desc language="en">Matches a date written in Zulu Time</localized_desc>
+            <localized_desc language="fr">Correspond à une date exprimée au format "Zulu" ou UTC.</localized_desc>
+        </description>
+        <regexp>\d{4}-\d{2}-\d{2}(?:T\d{1,2}:\d{2}(?::\d{2}(?:[.]\d{1,5})?)?)?</regexp>
+    </tagType>
+
+    <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+    <tagType name="Word" type="basestring">
+        <description>
+            <localized_desc language="en">Matches a single word</localized_desc>
+            <localized_desc language="fr">Correspond à un mot simple</localized_desc>
+        </description>
+        <regexp>[a-zA-Z]*</regexp>
+    </tagType>
+
+    <tagType name="AnythingWithoutSpace" type="basestring">
+        <description>
+            <localized_desc language="en">Expression matching a single word or lexeme.</localized_desc>
+            <localized_desc language="fr">Expression correspondant à un mot sans espace intersticiel.
+            </localized_desc>
+        </description>
+        <regexp>[^ ]+</regexp>
+    </tagType>
+
+    <tagType name="RegDate" type="basestring">
+        <description>
+            <localized_desc language="en">Matches a date written in YYYY-MM-dd hh:mm:ss</localized_desc>
+            <localized_desc language="fr">Correspond à une date au format YYYY-MM-dd hh:mm:ss</localized_desc>
+        </description>
+        <regexp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+
+    <tagType name="switchdDate" type="datetime">
+        <description>
+            <localized_desc language="en">Matches a date generated by switchd</localized_desc>
+            <localized_desc language="fr">Correspond à une date generee par switchd</localized_desc>
+        </description>
+        <regexp>\d+(?:.\d*)? \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+
+    <tagType name="YYYY-MM-DD hh:mm:ss.ff TZ">
+        <description>
+            <localized_desc language="">Matches a date with this format: 2014-08-12 10:42:58.764925 PDT</localized_desc>
+        </description>
+        <regexp>\d{4}-\d{2}-\d{2} \d{1,2}:\d{1,2}:\d{1,2}.\d* ([A-Z]*((\-|\+)[0-9])?)?</regexp>
+    </tagType>
+
+    <tagType name="MM/dd/YYYY hh:mm:ss">
+        <regexp>\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+
+    <tagType name="dd/MMM/YYYY:hh:mm:ss">
+        <regexp>\d{2}/[a-zA-Z]+/\d{4}:\d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+
+    <tagType name="MMM dd hh:mm:ss YYYY">
+        <regexp>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{2} \d{2}:\d{2}:\d{2} \d{4}</regexp>
+    </tagType>
+
+    <tagType name="MMM dd hh:mm:ss">
+        <regexp>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{2} \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+
+    <tagType name="MMM dd YYYY hh:mm:ss">
+        <regexp>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{2} \d{4} \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+
+    <tagType name="MM/DD/YY, hh:mm:ss">
+        <regexp>\d{2}/\d{2}/\d{2}\, \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+
+    <tagType name="YYMMDD hh:mm:ss">
+        <regexp>\d{6} \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+
+    <tagType name="dd-MMM-YYYY hh:mm:ss">
+        <regexp>\d{2}-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{4} \d{2}:\d{2}:\d{2}</regexp>
+    </tagType>
+</tagTypes>
