@@ -15,13 +15,3 @@ Instructions on different commands
 ==================================
 
 $> pyjeet --help
-
-Wiki page
-=========
-
-https://wiki.cumulusnetworks.com/display/SD/Pyjeet+Tool+Documentation
-
-TODO list
-=========
-
-https://docs.google.com/spreadsheets/d/1I9VfDUNPcj7GBCrgKI30kENngF9Q0Yux8IW_NQdHC-E/edit?usp=sharing
